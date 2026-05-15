@@ -49,6 +49,8 @@ describe('stepConvert', () => {
 		await stepConvert(makeSource());
 
 		expect(runWithOutput).toHaveBeenCalledWith('versatiles', [
+			'--cache-dir',
+			'/home/tmp',
 			'convert',
 			expect.stringContaining(`from_gdal_dem filename='${join(tempDir, 'test-source', 'dem.vrt')}'`),
 			join(tempDir, 'test-source', 'test-source.versatiles'),
