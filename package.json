@@ -10,6 +10,7 @@
     "format:check": "prettier --check .",
     "lint": "prettier --check . && eslint src/",
     "start": "tsx src/main.ts",
+    "mapterhorn": "tsx src/mapterhorn.ts",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
