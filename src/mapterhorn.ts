@@ -47,7 +47,7 @@ async function fetchIndex(url: string): Promise<DownloadIndex> {
 }
 
 /**
- * Builds a `from_stacked_raster` pipeline over every source. `from_stacked_raster`
+ * Builds a `from_stacked` pipeline over every source. `from_stacked`
  * uses the tile from the first source that provides it, so we list the high-zoom
  * regional patches before the low-zoom planet. Because the sources never overlap
  * in x/y at any given zoom, the order only matters as a tie-breaker, but keeping
@@ -58,7 +58,7 @@ function buildPipeline(items: DownloadItem[]): string {
 
 	const sources = ordered.map((item) => `\tfrom_container filename='${item.url}'`).join(',\n');
 
-	return `from_stacked_raster [\n${sources}\n] | dem_quantize encoding=terrarium`;
+	return `from_stacked [\n${sources}\n] | dem_quantize encoding=terrarium`;
 }
 
 interface CliArgs {
