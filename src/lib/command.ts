@@ -12,10 +12,15 @@ export async function run(command: string, args: string[], options?: { cwd?: str
 	return stdout;
 }
 
-export async function runWithOutput(command: string, args: string[], options?: { cwd?: string }): Promise<void> {
+export async function runWithOutput(
+	command: string,
+	args: string[],
+	options?: { cwd?: string; env?: Record<string, string> },
+): Promise<void> {
 	return new Promise((resolve, reject) => {
 		const child = spawn(command, args, {
 			cwd: options?.cwd,
+			env: options?.env ? { ...process.env, ...options.env } : process.env,
 			stdio: 'inherit',
 		});
 		child.on('error', reject);

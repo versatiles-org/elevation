@@ -1,6 +1,7 @@
 import { parseArgs } from 'node:util';
-import { writeFile, mkdir, readdir } from 'node:fs/promises';
+import { writeFile, mkdir, readdir, mkdtemp, rm } from 'node:fs/promises';
 import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 import { DATA_DIR } from './config.js';
 import { run, runWithOutput, verifyDependencies } from './lib/command.js';
 
@@ -204,7 +205,9 @@ Options:
       --ssh-identity <f>   SSH identity file for SFTP (default: ~/.ssh/id_ed25519)
       --vpl-path <file>    Where to write the generated merge pipeline
                            (default: data/mapterhorn.vpl)
-      --cache-dir <dir>    Pass --cache-dir to versatiles convert
+      --cache-dir <dir>    Cache dir for versatiles convert (set via the
+                           VERSATILES_CACHE_DIR env var). Default: a temporary
+                           directory created per run and removed on completion.
       --force              Re-convert sources even if their container exists
       --dry-run            Only generate the merge .vpl file, convert nothing
   -h, --help               Show this help`);
@@ -243,31 +246,46 @@ export async function main(): Promise<void> {
 		return;
 	}
 
-	// ---- Phase 1: convert new sources into per-source containers ----------
-	await storage.ensureSourcesDir();
-	const existing = args.force ? new Set<string>() : await storage.listExisting();
+	// versatiles caches remote PMTiles reads in $VERSATILES_CACHE_DIR. Use the
+	// caller-provided dir if given, otherwise a temporary one we remove on exit.
+	const usingTempCache = !args.cacheDir;
+	const cacheDir = args.cacheDir ?? (await mkdtemp(join(tmpdir(), 'versatiles-cache-')));
+	const convertEnv = { VERSATILES_CACHE_DIR: cacheDir };
+	console.log(`versatiles cache dir: ${cacheDir}${usingTempCache ? ' (temporary)' : ''}`);
 
-	const pending = index.items.filter((item) => !existing.has(containerName(item)));
-	console.log(
-		`Phase 1: ${pending.length} source(s) to convert, ${index.items.length - pending.length} already present.`,
-	);
+	try {
+		// ---- Phase 1: convert new sources into per-source containers ----------
+		await storage.ensureSourcesDir();
+		const existing = args.force ? new Set<string>() : await storage.listExisting();
 
-	const baseConvertArgs = args.cacheDir ? ['--cache-dir', args.cacheDir, ...storage.convertArgs] : storage.convertArgs;
+		const pending = index.items.filter((item) => !existing.has(containerName(item)));
+		console.log(
+			`Phase 1: ${pending.length} source(s) to convert, ${index.items.length - pending.length} already present.`,
+		);
 
-	for (const [i, item] of pending.entries()) {
-		const target = storage.containerUrl(containerName(item));
-		console.log(`[${i + 1}/${pending.length}] Converting ${item.name} -> ${target}`);
-		const pipeline = quantizePipeline(item.url);
-		await runWithOutput('versatiles', [...baseConvertArgs, 'convert', `[,vpl](${pipeline})`, target]);
+		for (const [i, item] of pending.entries()) {
+			const target = storage.containerUrl(containerName(item));
+			console.log(`[${i + 1}/${pending.length}] Converting ${item.name} -> ${target}`);
+			const pipeline = quantizePipeline(item.url);
+			await runWithOutput('versatiles', [...storage.convertArgs, 'convert', `[,vpl](${pipeline})`, target], {
+				env: convertEnv,
+			});
+		}
+
+		console.log('Phase 1 complete: all sources converted.');
+
+		// ---- Phase 2: stack per-source containers into the merged output ------
+		console.log(`Phase 2: merging ${index.items.length} sources into ${storage.mergedOutput}`);
+		await runWithOutput('versatiles', [...storage.convertArgs, 'convert', args.vplPath, storage.mergedOutput], {
+			env: convertEnv,
+		});
+
+		console.log(`Merge complete: ${storage.mergedOutput}`);
+	} finally {
+		if (usingTempCache) {
+			await rm(cacheDir, { recursive: true, force: true });
+		}
 	}
-
-	console.log('Phase 1 complete: all sources converted.');
-
-	// ---- Phase 2: stack per-source containers into the merged output ------
-	console.log(`Phase 2: merging ${index.items.length} sources into ${storage.mergedOutput}`);
-	await runWithOutput('versatiles', [...baseConvertArgs, 'convert', args.vplPath, storage.mergedOutput]);
-
-	console.log(`Merge complete: ${storage.mergedOutput}`);
 }
 
 const isEntry = process.argv[1]?.endsWith('mapterhorn.ts');
