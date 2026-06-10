@@ -19,8 +19,15 @@ export async function runWithOutput(command: string, args: string[], options?: {
 			stdio: 'inherit',
 		});
 		child.on('error', reject);
-		child.on('close', (code) => {
+		child.on('close', (code, signal) => {
 			if (code === 0) resolve();
+			else if (signal)
+				reject(
+					new Error(
+						`${command} was killed by signal ${signal}` +
+							(signal === 'SIGKILL' ? ' (likely out of memory — check `dmesg -T | grep -i oom`)' : ''),
+					),
+				);
 			else reject(new Error(`${command} exited with code ${code}`));
 		});
 	});
