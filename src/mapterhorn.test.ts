@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sourceSlug, containerName, quantizePipeline, stackPipeline } from './mapterhorn.js';
+import { sourceSlug, containerName, quantizePipeline, stackPipeline, tmpVariant } from './mapterhorn.js';
 
 const item = (name: string, max_zoom: number) => ({
 	name,
@@ -26,6 +26,24 @@ describe('quantizePipeline', () => {
 		expect(quantizePipeline('https://example.com/a.pmtiles')).toBe(
 			"from_container filename='https://example.com/a.pmtiles' | dem_quantize encoding=terrarium",
 		);
+	});
+});
+
+describe('tmpVariant', () => {
+	it('prefixes the basename of a path with tmp_', () => {
+		expect(tmpVariant('/home/incoming/mapterhorn-sources/6-0-21.versatiles')).toBe(
+			'/home/incoming/mapterhorn-sources/tmp_6-0-21.versatiles',
+		);
+	});
+
+	it('prefixes the basename of an sftp URL with tmp_', () => {
+		expect(tmpVariant('sftp://u@host:23/home/incoming/elevation.versatiles')).toBe(
+			'sftp://u@host:23/home/incoming/tmp_elevation.versatiles',
+		);
+	});
+
+	it('handles a bare filename', () => {
+		expect(tmpVariant('elevation.versatiles')).toBe('tmp_elevation.versatiles');
 	});
 });
 

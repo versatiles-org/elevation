@@ -1,5 +1,5 @@
 import { parseArgs } from 'node:util';
-import { writeFile, mkdir, readdir, mkdtemp, rm } from 'node:fs/promises';
+import { writeFile, mkdir, readdir, mkdtemp, rm, rename } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { DATA_DIR } from './config.js';
@@ -95,6 +95,17 @@ function parentOf(path: string): string {
 }
 
 /**
+ * Temp variant of a container reference, with `tmp_` prefixed to the basename:
+ * `.../6-0-21.versatiles` -> `.../tmp_6-0-21.versatiles`. We convert into this,
+ * then rename to the final name, so a crash never leaves a half-written
+ * container at the real path.
+ */
+export function tmpVariant(target: string): string {
+	const i = target.lastIndexOf('/');
+	return i < 0 ? `tmp_${target}` : `${target.slice(0, i + 1)}tmp_${target.slice(i + 1)}`;
+}
+
+/**
  * Where per-source and merged containers live, and how to inspect/prepare that
  * location. Backed by SSH/SFTP for `sftp://` outputs and the local filesystem
  * otherwise (handy for `--dry-run` and tests).
@@ -109,6 +120,8 @@ interface Storage {
 	ensureSourcesDir(): Promise<void>;
 	/** Names of containers already present in the per-source directory. */
 	listExisting(): Promise<Set<string>>;
+	/** Rename the temp variant of `target` (see `tmpVariant`) to `target`. */
+	promote(target: string): Promise<void>;
 }
 
 function createRemoteStorage(output: string, sshIdentity: string): Storage {
@@ -141,6 +154,9 @@ function createRemoteStorage(output: string, sshIdentity: string): Storage {
 				return new Set();
 			}
 		},
+		async promote(target) {
+			await run('ssh', [...sshArgs, 'mv', new URL(tmpVariant(target)).pathname, new URL(target).pathname]);
+		},
 	};
 }
 
@@ -159,6 +175,9 @@ function createLocalStorage(output: string): Storage {
 			} catch {
 				return new Set();
 			}
+		},
+		async promote(target) {
+			await rename(tmpVariant(target), target);
 		},
 	};
 }
@@ -267,18 +286,24 @@ export async function main(): Promise<void> {
 			const target = storage.containerUrl(containerName(item));
 			console.log(`[${i + 1}/${pending.length}] Converting ${item.name} -> ${target}`);
 			const pipeline = quantizePipeline(item.url);
-			await runWithOutput('versatiles', [...storage.convertArgs, 'convert', `[,vpl](${pipeline})`, target], {
+			// Convert into a tmp_ file and only rename it into place once convert
+			// succeeds, so a crash never leaves a corrupt container behind.
+			await runWithOutput('versatiles', [...storage.convertArgs, 'convert', `[,vpl](${pipeline})`, tmpVariant(target)], {
 				env: convertEnv,
 			});
+			await storage.promote(target);
 		}
 
 		console.log('Phase 1 complete: all sources converted.');
 
 		// ---- Phase 2: stack per-source containers into the merged output ------
 		console.log(`Phase 2: merging ${index.items.length} sources into ${storage.mergedOutput}`);
-		await runWithOutput('versatiles', [...storage.convertArgs, 'convert', args.vplPath, storage.mergedOutput], {
-			env: convertEnv,
-		});
+		await runWithOutput(
+			'versatiles',
+			[...storage.convertArgs, 'convert', args.vplPath, tmpVariant(storage.mergedOutput)],
+			{ env: convertEnv },
+		);
+		await storage.promote(storage.mergedOutput);
 
 		console.log(`Merge complete: ${storage.mergedOutput}`);
 	} finally {
