@@ -72,7 +72,7 @@ export function containerName(item: DownloadItem): string {
 
 /** Phase 1: quantize a single remote PMTiles source into a terrarium container. */
 export function quantizePipeline(sourceUrl: string): string {
-	return `from_container filename='${sourceUrl}' | dem_quantize encoding=terrarium`;
+	return `from_container filename='${sourceUrl}' | dem_quantize encoding=terrarium | raster_format effort=80`;
 }
 
 /**
