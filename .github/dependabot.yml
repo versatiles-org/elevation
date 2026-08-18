@@ -1,0 +1,9 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule: { interval: monthly }
+    groups:
+      npm: { patterns: ['*'] }
+      security: { applies-to: security-updates, patterns: ['*'] }
+    versioning-strategy: increase-if-necessary
