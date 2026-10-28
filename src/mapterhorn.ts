@@ -7,7 +7,7 @@ import { run, runWithOutput, verifyDependencies } from './lib/command.js';
 
 /**
  * Converts Mapterhorn's global DEM (`planet.pmtiles`) into a single elevation
- * container: the remote PMTiles file is read, quantized with `dem_quantize` and
+ * container: the remote PMTiles file is read, its metadata is updated and it is
  * written to the output (the Hetzner storage box by default).
  */
 
@@ -18,20 +18,19 @@ const DEFAULT_OUTPUT = 'sftp://u417480@u417480.your-storagebox.de:23/home/incomi
 const DEFAULT_SSH_IDENTITY = `${process.env.HOME ?? ''}/.ssh/id_ed25519`;
 
 const METADATA = {
-	name: 'VersaTiles Elevation',
-	description: 'VersaTiles Elevation based on Mapterhorn DEM data',
+	name: 'Elevation',
+	description: 'Elevation based on Mapterhorn',
 };
 
 /**
- * Quantize a remote PMTiles source into a terrarium container, encoded as WebP
- * and tagged with our own TileJSON metadata.
+ * Read a remote PMTiles source and tag it with our own TileJSON metadata. The
+ * Mapterhorn tiles are already quantized terrarium WebP, so they pass through
+ * unchanged.
  */
-export function quantizePipeline(sourceUrl: string): string {
+export function buildPipeline(sourceUrl: string): string {
 	return [
 		`from_container filename='${sourceUrl}'`,
 		`meta_update name='${METADATA.name}' description='${METADATA.description}' schema='dem/terrarium'`,
-		'dem_quantize',
-		'raster_format format=webp effort=80',
 	].join('\n| ');
 }
 
@@ -108,8 +107,8 @@ function parseCliArgs(): CliArgs {
 	if (values.help) {
 		console.log(`Usage: npx tsx src/mapterhorn.ts [options]
 
-Converts the global Mapterhorn DEM (${SOURCE_URL}) with dem_quantize into
-one elevation container.
+Converts the global Mapterhorn DEM (${SOURCE_URL}) into one
+elevation container with updated metadata.
 
 Options:
   -o, --output <target>    Output container path or SFTP URL
@@ -144,7 +143,7 @@ export async function main(): Promise<void> {
 
 	// Always write the pipeline for inspection.
 	await mkdir(DATA_DIR, { recursive: true });
-	await writeFile(args.vplPath, quantizePipeline(SOURCE_URL) + '\n');
+	await writeFile(args.vplPath, buildPipeline(SOURCE_URL) + '\n');
 	console.log(`Wrote pipeline to ${args.vplPath}`);
 
 	if (args.dryRun) {

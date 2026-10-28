@@ -1,14 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { quantizePipeline, tmpVariant } from './mapterhorn.js';
+import { buildPipeline, tmpVariant } from './mapterhorn.js';
 
-describe('quantizePipeline', () => {
-	it('quantizes to terrarium webp and sets metadata', () => {
-		expect(quantizePipeline('https://example.com/a.pmtiles')).toBe(
+describe('buildPipeline', () => {
+	it('reads the source and only updates its metadata', () => {
+		expect(buildPipeline('https://example.com/a.pmtiles')).toBe(
 			[
 				"from_container filename='https://example.com/a.pmtiles'",
-				"| meta_update name='VersaTiles Elevation' description='VersaTiles Elevation based on Mapterhorn DEM data' schema='dem/terrarium'",
-				'| dem_quantize',
-				'| raster_format format=webp effort=80',
+				"| meta_update name='Elevation' description='Elevation based on Mapterhorn' schema='dem/terrarium'",
 			].join('\n'),
 		);
 	});

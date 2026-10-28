@@ -75,9 +75,9 @@ data/
 In addition to processing Copernicus DEM, this repo can build an elevation
 container from [Mapterhorn](https://mapterhorn.com)'s global DEM
 ([`planet.pmtiles`](https://download.mapterhorn.com/planet.pmtiles), z0–12). The
-`mapterhorn` script reads the remote PMTiles file, quantizes it with
-`dem_quantize` and writes the result to the output target (the storagebox by
-default).
+`mapterhorn` script reads the remote PMTiles file (already terrarium-encoded
+WebP), updates its metadata with `meta_update` and writes the result to the
+output target (the storagebox by default).
 
 ```bash
 # Convert planet.pmtiles (writes to the storagebox SFTP target by default)
