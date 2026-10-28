@@ -72,41 +72,26 @@ data/
 
 ## Mapterhorn
 
-In addition to processing Copernicus DEM, this repo can build a single elevation
-container from [Mapterhorn](https://mapterhorn.com)'s published tiles. Mapterhorn
-provides a global low-zoom DEM (`planet.pmtiles`, z0–12) plus hundreds of
-high-zoom regional patches (`6-x-y.pmtiles`, z13–18). The `mapterhorn` script
-discovers all of them from the [download index](https://download.mapterhorn.com/download_urls.json)
-and builds the container in two phases:
-
-1. **Convert** — scan every source and, for each one not already converted,
-   quantize it with `dem_quantize` into its own per-source `.versatiles`
-   container in a `mapterhorn-sources/` directory next to the output (on the
-   storagebox by default). Re-runs only convert sources that are new or missing.
-2. **Merge** — once every source is present, stack all per-source containers with
-   `from_stacked` and write the combined container to the output target.
+In addition to processing Copernicus DEM, this repo can build an elevation
+container from [Mapterhorn](https://mapterhorn.com)'s global DEM
+([`planet.pmtiles`](https://download.mapterhorn.com/planet.pmtiles), z0–12). The
+`mapterhorn` script reads the remote PMTiles file, quantizes it with
+`dem_quantize` and writes the result to the output target (the storagebox by
+default).
 
 ```bash
-# Convert new sources and merge (writes to the storagebox SFTP target by default)
+# Convert planet.pmtiles (writes to the storagebox SFTP target by default)
 npm run mapterhorn
 
-# Only generate the merge .vpl pipeline file, without converting anything
+# Only generate the .vpl pipeline file, without converting anything
 npm run mapterhorn -- --dry-run
 
-# Re-convert every source even if its container already exists
-npm run mapterhorn -- --force
-
-# Convert to local files instead
+# Convert to a local file instead
 npm run mapterhorn -- --output dem.versatiles
 
 # See all options
 npm run mapterhorn -- --help
 ```
-
-> **Note:** phase 1 reads each remote PMTiles source once and writes a quantized
-> container back to the storagebox; phase 2 then reads those containers. The first
-> run converts all ~460 sources, so it is long-running — subsequent runs skip the
-> sources already converted and jump straight to the merge.
 
 ## Development
 
