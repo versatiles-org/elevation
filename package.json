@@ -14,7 +14,7 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
-    "upgrade": "npm-check-updates -u && rm -rf node_modules package-lock.json && npm install"
+    "upgrade": "npm-check-updates -u --peer && rm -rf node_modules package-lock.json && npm install && npm audit fix"
   },
   "dependencies": {
     "yaml": "^2.9.0"
