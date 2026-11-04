@@ -2,12 +2,13 @@
 
 Builds the VersaTiles elevation container (`elevation.versatiles`) from [Mapterhorn](https://mapterhorn.com)'s global DEM.
 
-The script reads the remote [`planet.pmtiles`](https://download.mapterhorn.com/planet.pmtiles) (z0–12, already [Terrarium-encoded](https://github.com/tilezen/joerd/blob/master/docs/formats.md#terrarium) WebP), updates its metadata with `meta_update` and writes the result as a [`.versatiles`](https://github.com/versatiles-org/versatiles-spec) container to the output target (the storagebox by default). It converts into a `tmp_` file first and renames it once the conversion succeeds, so a crash never leaves a half-written container behind.
+The script reads the remote [`planet.pmtiles`](https://download.mapterhorn.com/planet.pmtiles) (z0–12, already [Terrarium-encoded](https://github.com/tilezen/joerd/blob/master/docs/formats.md#terrarium) WebP), updates its metadata with `meta_update` and writes the result as a [`.versatiles`](https://github.com/versatiles-org/versatiles-spec) container to the output target (the storagebox by default). The conversion runs in-process through the [`@versatiles/versatiles-rs`](https://www.npmjs.com/package/@versatiles/versatiles-rs) Node module, which builds the output beside the destination and renames it into place only once it is complete, so a crash never leaves a half-written container behind.
 
 ## Prerequisites
 
 - [Node.js](https://nodejs.org/) (v20+)
-- [VersaTiles](https://github.com/versatiles-org/versatiles-rs) (`versatiles`)
+
+The VersaTiles CLI is not needed: `npm install` brings the native module for your platform.
 
 ## Setup
 

@@ -31,5 +31,8 @@
   "allowScripts": {
     "esbuild": true,
     "fsevents": true
+  },
+  "dependencies": {
+    "@versatiles/versatiles-rs": "^5.6.0"
   }
 }
