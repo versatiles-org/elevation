@@ -1,6 +1,20 @@
 import { describe, it, expect } from 'vitest';
 import type { ProgressData } from '@versatiles/versatiles-rs';
-import { buildPipeline, createProgressLogger, formatProgress } from './mapterhorn.js';
+import { buildPipeline, createProgressLogger, formatProgress, selectTargets } from './generate.js';
+
+describe('selectTargets', () => {
+	it('selects all targets when none are named', () => {
+		expect(selectTargets([])).toEqual(['elevation']);
+	});
+
+	it('keeps named targets once each', () => {
+		expect(selectTargets(['elevation', 'elevation'])).toEqual(['elevation']);
+	});
+
+	it('rejects unknown targets', () => {
+		expect(() => selectTargets(['contours'])).toThrow('Unknown target: contours');
+	});
+});
 
 describe('buildPipeline', () => {
 	it('reads the source and only updates its metadata', () => {
