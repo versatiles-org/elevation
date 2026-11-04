@@ -1,14 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import type { ProgressData } from '@versatiles/versatiles-rs';
-import { buildPipeline, createProgressLogger, formatProgress, selectTargets } from './generate.js';
+import { createProgressLogger, formatProgress, parseBbox, parseZoom, selectTargets, TARGETS } from './generate.js';
 
 describe('selectTargets', () => {
 	it('selects all targets when none are named', () => {
-		expect(selectTargets([])).toEqual(['elevation']);
+		expect(selectTargets([])).toEqual(['elevation', 'hillshade']);
 	});
 
-	it('keeps named targets once each', () => {
-		expect(selectTargets(['elevation', 'elevation'])).toEqual(['elevation']);
+	it('keeps named targets once each, in the given order', () => {
+		expect(selectTargets(['hillshade', 'elevation', 'hillshade'])).toEqual(['hillshade', 'elevation']);
 	});
 
 	it('rejects unknown targets', () => {
@@ -16,14 +16,30 @@ describe('selectTargets', () => {
 	});
 });
 
-describe('buildPipeline', () => {
-	it('reads the source and only updates its metadata', () => {
-		expect(buildPipeline('https://example.com/a.pmtiles')).toBe(
-			[
-				"from_container filename='https://example.com/a.pmtiles'",
-				"| meta_update name='Elevation' description='Elevation based on Mapterhorn' schema='dem/terrarium'",
-			].join('\n'),
-		);
+describe('TARGETS', () => {
+	it('gives every target its own file name', () => {
+		const filenames = Object.values(TARGETS).map((target) => target.filename);
+		expect(new Set(filenames).size).toBe(filenames.length);
+	});
+});
+
+describe('parseBbox', () => {
+	it('parses west,south,east,north', () => {
+		expect(parseBbox('5.9, 45.8,10.5,47.8')).toEqual([5.9, 45.8, 10.5, 47.8]);
+	});
+
+	it.each(['1,2,3', '1,2,3,x', '10,0,5,1', '0,10,1,5'])('rejects "%s"', (value) => {
+		expect(() => parseBbox(value)).toThrow('--bbox');
+	});
+});
+
+describe('parseZoom', () => {
+	it('parses an integer zoom level', () => {
+		expect(parseZoom('8')).toBe(8);
+	});
+
+	it.each(['-1', '31', '1.5', 'x', ''])('rejects "%s"', (value) => {
+		expect(() => parseZoom(value)).toThrow('--max-zoom');
 	});
 });
 

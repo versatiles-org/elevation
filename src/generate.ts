@@ -1,33 +1,17 @@
 import { parseArgs } from 'node:util';
 import { writeFile, mkdir } from 'node:fs/promises';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { convert, type MessageData, type ProgressData } from '@versatiles/versatiles-rs';
 import { DATA_DIR, loadEnvFile, outputPath, readConfig } from './config.js';
+import { elevationPipeline, hillshadePipeline, pipelineProblems } from './pipelines.js';
 
 /**
  * Generates the elevation containers from Mapterhorn's global DEM
  * (`planet.pmtiles`) and writes them to `OUTPUT_DIR` (see `.env.example`).
  */
 
-const METADATA = {
-	name: 'Elevation',
-	description: 'Elevation based on Mapterhorn',
-};
-
 /** How often to print a progress line, in milliseconds. */
 const PROGRESS_INTERVAL = 10_000;
-
-/**
- * Read a remote PMTiles source and tag it with our own TileJSON metadata. The
- * Mapterhorn tiles are already quantized terrarium WebP, so they pass through
- * unchanged.
- */
-export function buildPipeline(sourceUrl: string): string {
-	return [
-		`from_container filename='${sourceUrl}'`,
-		`meta_update name='${METADATA.name}' description='${METADATA.description}' schema='dem/terrarium'`,
-	].join('\n| ');
-}
 
 /** A container this script can generate. */
 export interface Target {
@@ -38,8 +22,31 @@ export interface Target {
 }
 
 export const TARGETS: Record<string, Target> = {
-	elevation: { filename: 'elevation.versatiles', pipeline: buildPipeline },
+	elevation: { filename: 'elevation.versatiles', pipeline: elevationPipeline },
+	hillshade: { filename: 'hillshade.versatiles', pipeline: hillshadePipeline },
 };
+
+/** Parse `--bbox west,south,east,north` in WGS84 degrees. */
+export function parseBbox(value: string): [number, number, number, number] {
+	const parts = value.split(',').map((part) => Number(part.trim()));
+	if (parts.length !== 4 || parts.some((n) => !Number.isFinite(n))) {
+		throw new Error(`--bbox needs four numbers west,south,east,north, got "${value}"`);
+	}
+	const [west, south, east, north] = parts;
+	if (west >= east || south >= north) {
+		throw new Error(`--bbox needs west < east and south < north, got "${value}"`);
+	}
+	return [west, south, east, north];
+}
+
+/** Parse `--max-zoom`, an integer from 0 to 30. */
+export function parseZoom(value: string): number {
+	const zoom = /^\s*\d+\s*$/.test(value) ? Number(value) : NaN;
+	if (!Number.isInteger(zoom) || zoom > 30) {
+		throw new Error(`--max-zoom needs an integer from 0 to 30, got "${value}"`);
+	}
+	return zoom;
+}
 
 /** The targets named on the command line, or all of them if none are named. */
 export function selectTargets(names: string[]): string[] {
@@ -86,6 +93,8 @@ interface CliArgs {
 	targets: string[];
 	output?: string;
 	sshIdentity?: string;
+	bbox?: [number, number, number, number];
+	maxZoom?: number;
 	dryRun: boolean;
 }
 
@@ -94,6 +103,8 @@ function parseCliArgs(): CliArgs {
 		options: {
 			output: { type: 'string', short: 'o' },
 			'ssh-identity': { type: 'string' },
+			bbox: { type: 'string' },
+			'max-zoom': { type: 'string' },
 			'dry-run': { type: 'boolean' },
 			help: { type: 'boolean', short: 'h' },
 		},
@@ -115,7 +126,10 @@ Options:
       --ssh-identity <f>   SSH identity file for SFTP (default:
                            $VERSATILES_SSH_IDENTITY, then the SSH agent and
                            the usual ~/.ssh keys)
-      --dry-run            Only write the pipelines to data/, convert nothing
+      --bbox <w,s,e,n>     Only convert this area, in WGS84 degrees (for trial runs)
+      --max-zoom <z>       Only convert up to this zoom level (for trial runs)
+      --dry-run            Check the pipelines and write them to data/,
+                           convert nothing
   -h, --help               Show this help`);
 		process.exit(0);
 	}
@@ -129,6 +143,8 @@ Options:
 		targets,
 		output: values.output,
 		sshIdentity: values['ssh-identity'],
+		bbox: values.bbox === undefined ? undefined : parseBbox(values.bbox),
+		maxZoom: values['max-zoom'] === undefined ? undefined : parseZoom(values['max-zoom']),
 		dryRun: values['dry-run'] ?? false,
 	};
 }
@@ -140,28 +156,38 @@ export async function main(): Promise<void> {
 
 	await mkdir(DATA_DIR, { recursive: true });
 
+	// Write and check every pipeline before converting any, so a broken one
+	// fails now rather than after the others have run for hours.
+	const jobs = [];
 	for (const name of args.targets) {
 		const target = TARGETS[name];
-		const output = args.output ?? outputPath(config.outputDir, target.filename);
-
-		// Always write the pipeline for inspection.
+		const vpl = target.pipeline(config.sourceUrl);
 		const vplPath = join(DATA_DIR, `${name}.vpl`);
-		await writeFile(vplPath, target.pipeline(config.sourceUrl) + '\n');
+		await writeFile(vplPath, vpl + '\n');
 		console.log(`Wrote pipeline to ${vplPath}`);
 
-		if (args.dryRun) {
-			console.log(`Dry run, skipping ${name}.`);
-			continue;
+		const problems = pipelineProblems(vpl);
+		if (problems.length > 0) {
+			throw new Error(`Pipeline "${name}" is invalid:\n  ${problems.join('\n  ')}`);
 		}
+		jobs.push({ name, vplPath, output: args.output ?? outputPath(config.outputDir, target.filename) });
+	}
 
+	if (args.dryRun) {
+		console.log('Pipelines are valid. Dry run, converting nothing.');
+		return;
+	}
+
+	for (const { name, vplPath, output } of jobs) {
 		// versatiles builds the output beside the destination and renames it into
 		// place only once it is complete, locally and over SFTP alike, so a crash
 		// never leaves a corrupt container at the real path.
 		console.log(`Converting ${name}: ${config.sourceUrl} -> ${output}`);
+		if (!output.includes('://')) await mkdir(dirname(output), { recursive: true });
 		await convert(
 			vplPath,
 			output,
-			{ sshIdentity: args.sshIdentity },
+			{ sshIdentity: args.sshIdentity, bbox: args.bbox, maxZoom: args.maxZoom },
 			createProgressLogger((line) => {
 				console.log(line);
 			}),

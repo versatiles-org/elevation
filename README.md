@@ -1,8 +1,13 @@
 # versatiles-elevation
 
-Builds the VersaTiles elevation container (`elevation.versatiles`) from [Mapterhorn](https://mapterhorn.com)'s global DEM.
+Builds VersaTiles containers from [Mapterhorn](https://mapterhorn.com)'s global DEM, the remote [`planet.pmtiles`](https://download.mapterhorn.com/planet.pmtiles) (z0–12, already [Terrarium-encoded](https://github.com/tilezen/joerd/blob/master/docs/formats.md#terrarium) WebP), and writes them as [`.versatiles`](https://github.com/versatiles-org/versatiles-spec) containers to `OUTPUT_DIR`:
 
-The script reads the remote [`planet.pmtiles`](https://download.mapterhorn.com/planet.pmtiles) (z0–12, already [Terrarium-encoded](https://github.com/tilezen/joerd/blob/master/docs/formats.md#terrarium) WebP), updates its metadata with `meta_update` and writes the result as a [`.versatiles`](https://github.com/versatiles-org/versatiles-spec) container to `OUTPUT_DIR`. The conversion runs in-process through the [`@versatiles/versatiles-rs`](https://www.npmjs.com/package/@versatiles/versatiles-rs) Node module, which builds the output beside the destination and renames it into place only once it is complete, so a crash never leaves a half-written container behind.
+| Target      | Container              | Contents                                                                                                             |
+| ----------- | ---------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `elevation` | `elevation.versatiles` | The DEM tiles unchanged, with our metadata (`dem/terrarium`)                                                         |
+| `hillshade` | `hillshade.versatiles` | Transparent RGBA WebP hillshading (`dem_hillshade`), shaded like MapLibre's `hillshade` layer, to lay over a basemap |
+
+The pipelines are in [`src/pipelines.ts`](src/pipelines.ts). The conversion runs in-process through the [`@versatiles/versatiles-rs`](https://www.npmjs.com/package/@versatiles/versatiles-rs) Node module, which builds the output beside the destination and renames it into place only once it is complete, so a crash never leaves a half-written container behind.
 
 ## Prerequisites
 
@@ -33,9 +38,13 @@ npm run generate
 
 # Generate one container
 npm run generate:elevation
+npm run generate:hillshade
 
-# Only write the .vpl pipelines to data/, without converting anything
+# Check the pipelines and write them to data/, without converting anything
 npm run generate -- --dry-run
+
+# Trial run: a small area and zoom range, e.g. Switzerland up to z8
+npm run generate -- hillshade --bbox 5.9,45.8,10.5,47.8 --max-zoom 8 --output data/trial/hillshade.versatiles
 
 # Write one container to a specific file instead of $OUTPUT_DIR
 npm run generate -- elevation --output dem.versatiles
@@ -44,7 +53,7 @@ npm run generate -- elevation --output dem.versatiles
 npm run generate -- --help
 ```
 
-The pipelines are written to `data/<target>.vpl` for inspection.
+The pipelines are checked with `checkVpl` and written to `data/<target>.vpl` for inspection before anything is converted, so a broken pipeline fails before a long run starts.
 
 ## Development
 
