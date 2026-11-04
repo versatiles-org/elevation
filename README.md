@@ -1,4 +1,4 @@
-# versatiles-dem
+# versatiles-elevation
 
 Builds the VersaTiles elevation container (`elevation.versatiles`) from [Mapterhorn](https://mapterhorn.com)'s global DEM.
 
