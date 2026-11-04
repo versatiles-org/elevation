@@ -20,7 +20,11 @@ export interface Config {
 	outputDir: string;
 	/** The Mapterhorn PMTiles file to read. */
 	sourceUrl: string;
+	/** Port of the `npm run dev` preview server. */
+	devPort: number;
 }
+
+export const DEFAULT_DEV_PORT = 8080;
 
 /** Load `.env` into `process.env` if it exists. Variables already set win. */
 export function loadEnvFile(path = ENV_FILE): void {
@@ -31,7 +35,15 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env): Config {
 	return {
 		outputDir: nonEmpty(env.OUTPUT_DIR) ?? DATA_DIR,
 		sourceUrl: nonEmpty(env.MAPTERHORN_URL) ?? DEFAULT_SOURCE_URL,
+		devPort: parsePort(nonEmpty(env.DEV_PORT)),
 	};
+}
+
+function parsePort(value: string | undefined): number {
+	if (value === undefined) return DEFAULT_DEV_PORT;
+	const port = /^\d+$/.test(value) ? Number(value) : NaN;
+	if (!(port >= 1 && port <= 65535)) throw new Error(`DEV_PORT needs a port from 1 to 65535, got "${value}"`);
+	return port;
 }
 
 /**

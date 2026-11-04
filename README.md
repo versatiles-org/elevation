@@ -29,6 +29,17 @@ Settings come from `.env` (see [`.env.example`](.env.example)); variables alread
 | `OUTPUT_DIR`              | `data/`                                          | Local directory or `sftp://` URL the containers are written to |
 | `VERSATILES_SSH_IDENTITY` | SSH agent, then `~/.ssh` keys                    | Private key for `sftp://` outputs, read by versatiles itself   |
 | `MAPTERHORN_URL`          | `https://download.mapterhorn.com/planet.pmtiles` | The Mapterhorn source                                          |
+| `DEV_PORT`                | `8080`                                           | Port of the `npm run dev` preview server                       |
+
+## Preview
+
+```bash
+npm run dev
+```
+
+Opens a preview server at <http://127.0.0.1:8080/> (see `DEV_PORT`). It serves every target's pipeline live from the remote Mapterhorn source, so each tile is computed when the map asks for it and nothing is converted or written. The MapLibre page in [`dev/`](dev/) shows them over the VersaTiles basemap, with toggles for the pre-rendered hillshade, MapLibre's own hillshade from the elevation tiles, and 3D terrain.
+
+The server restarts when a file in `src/` changes, so edit a pipeline in [`src/pipelines.ts`](src/pipelines.ts) and reload the page. Tiles load slowly because they are fetched from Mapterhorn and computed on the fly.
 
 ## Usage
 

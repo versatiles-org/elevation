@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Elevation preview</title>
+		<link rel="stylesheet" href="/maplibre/maplibre-gl.css" />
+		<style>
+			html,
+			body,
+			#map {
+				margin: 0;
+				height: 100%;
+			}
+			#panel {
+				position: absolute;
+				top: 10px;
+				left: 10px;
+				z-index: 1;
+				padding: 10px 12px;
+				background: rgb(255 255 255 / 0.92);
+				border-radius: 6px;
+				box-shadow: 0 1px 4px rgb(0 0 0 / 0.3);
+				font:
+					13px/1.5 system-ui,
+					sans-serif;
+			}
+			#panel h1 {
+				margin: 0 0 6px;
+				font-size: 14px;
+			}
+			#panel label {
+				display: block;
+				white-space: nowrap;
+			}
+			#panel small {
+				display: block;
+				margin-top: 6px;
+				color: #666;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="map"></div>
+		<form id="panel">
+			<h1>Elevation preview</h1>
+			<label><input type="checkbox" name="basemap" checked /> Basemap</label>
+			<label><input type="checkbox" name="hillshade" checked /> Hillshade, pre-rendered (<code>hillshade</code>)</label>
+			<label><input type="checkbox" name="native" /> Hillshade, MapLibre (<code>elevation</code>)</label>
+			<label><input type="checkbox" name="terrain" /> 3D terrain (<code>elevation</code>)</label>
+			<small>Tiles are computed live from Mapterhorn, so they load slowly.</small>
+		</form>
+		<script type="module" src="/main.js"></script>
+	</body>
+</html>

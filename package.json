@@ -5,7 +5,8 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "generate": "tsx src/generate.ts",
+    "dev": "tsx watch src/dev.ts",
+    "generate":"tsx src/generate.ts",
     "generate:elevation": "tsx src/generate.ts elevation",
     "generate:hillshade": "tsx src/generate.ts hillshade",
     "check": "npm run check:format && npm run check:lint && npm run check:types && npm test",
@@ -24,6 +25,7 @@
     "@versatiles/release-tool": "^2.21.0",
     "@vitest/coverage-v8": "^5.1.0",
     "eslint": "^10.14.0",
+    "maplibre-gl": "^6.16.0",
     "prettier": "^3.9.10",
     "tsx": "^4.23.15",
     "typescript": "^6.0.3",
