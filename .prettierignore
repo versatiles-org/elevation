@@ -1,5 +1,6 @@
 .claude/
-*.json
+package-lock.json
+package.json
 coverage/
 data/
 dist/
