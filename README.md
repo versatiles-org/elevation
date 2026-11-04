@@ -1,13 +1,12 @@
 # versatiles-dem
 
-CLI tool for downloading, processing, and converting Digital Elevation Model (DEM) data into [Terrarium-encoded](https://s3.amazonaws.com/elevation-tiles-prod/terrarium/) map tiles stored in [`.versatiles`](https://github.com/versatiles-org/versatiles-spec) containers.
+Builds the VersaTiles elevation container (`elevation.versatiles`) from [Mapterhorn](https://mapterhorn.com)'s global DEM.
 
-Currently supports [Copernicus DEM GLO-30](https://spacedata.copernicus.eu/collections/copernicus-digital-elevation-model) (30m resolution) and GLO-90 (90m resolution).
+The script reads the remote [`planet.pmtiles`](https://download.mapterhorn.com/planet.pmtiles) (z0–12, already [Terrarium-encoded](https://github.com/tilezen/joerd/blob/master/docs/formats.md#terrarium) WebP), updates its metadata with `meta_update` and writes the result as a [`.versatiles`](https://github.com/versatiles-org/versatiles-spec) container to the output target (the storagebox by default). It converts into a `tmp_` file first and renames it once the conversion succeeds, so a crash never leaves a half-written container behind.
 
 ## Prerequisites
 
 - [Node.js](https://nodejs.org/) (v20+)
-- [GDAL](https://gdal.org/) (`gdalinfo`, `gdalbuildvrt`)
 - [VersaTiles](https://github.com/versatiles-org/versatiles-rs) (`versatiles`)
 
 ## Setup
@@ -17,67 +16,6 @@ npm install
 ```
 
 ## Usage
-
-```bash
-# Run the full pipeline for all sources
-./dem
-
-# Process a single source
-./dem --source copernicus-dem-glo30
-./dem --source copernicus-dem-glo90
-
-# Run a specific step for all sources
-./dem --step download
-./dem --step check
-
-# Combine both flags
-./dem --source copernicus-dem-glo90 --step download
-
-# Run the merge step (combines all sources into one file)
-./dem --step merge
-
-# Show help
-./dem --help
-```
-
-## Pipeline Steps
-
-The pipeline runs these steps in order for each source:
-
-| Step       | Description                                                                       |
-| ---------- | --------------------------------------------------------------------------------- |
-| `download` | Fetch tile list from S3 and download all GeoTIFF tiles (8 concurrent, with retry) |
-| `check`    | Verify completeness against tile list and integrity via `gdalinfo`                |
-| `vrt`      | Build a virtual raster (`dem.vrt`) from all tiles using `gdalbuildvrt`            |
-| `convert`  | Convert VRT to `.versatiles` with Terrarium encoding                              |
-| `backup`   | _(not yet implemented)_                                                           |
-| `merge`    | Merge all per-source `.versatiles` files into a single `dem.versatiles`           |
-
-## Output
-
-```
-data/
-├── copernicus-dem-glo30/
-│   ├── tileList.txt
-│   ├── tiles/                              # ~26,000 GeoTIFFs
-│   ├── dem.vrt
-│   └── copernicus-dem-glo30.versatiles
-├── copernicus-dem-glo90/
-│   ├── tileList.txt
-│   ├── tiles/
-│   ├── dem.vrt
-│   └── copernicus-dem-glo90.versatiles
-└── dem.versatiles                          # merged output
-```
-
-## Mapterhorn
-
-In addition to processing Copernicus DEM, this repo can build an elevation
-container from [Mapterhorn](https://mapterhorn.com)'s global DEM
-([`planet.pmtiles`](https://download.mapterhorn.com/planet.pmtiles), z0–12). The
-`mapterhorn` script reads the remote PMTiles file (already terrarium-encoded
-WebP), updates its metadata with `meta_update` and writes the result to the
-output target (the storagebox by default).
 
 ```bash
 # Convert planet.pmtiles (writes to the storagebox SFTP target by default)
@@ -92,6 +30,8 @@ npm run mapterhorn -- --output dem.versatiles
 # See all options
 npm run mapterhorn -- --help
 ```
+
+The generated pipeline is written to `data/mapterhorn.vpl` for inspection.
 
 ## Development
 
@@ -112,4 +52,4 @@ npm run test:watch        # vitest in watch mode
 
 The source code is available under the [MIT License](LICENSE).
 
-Data sources have their own licenses — see the YAML files in `sources/` for details.
+The elevation data is © [Mapterhorn](https://mapterhorn.com/attribution) — see their attribution page for the underlying sources and licenses.

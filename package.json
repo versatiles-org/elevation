@@ -9,15 +9,11 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "prettier --check . && eslint src/",
-    "start": "tsx src/main.ts",
     "mapterhorn": "tsx src/mapterhorn.ts",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
     "upgrade": "npm-check-updates -u --peer && rm -rf node_modules package-lock.json && npm install && npm audit fix"
-  },
-  "dependencies": {
-    "yaml": "^2.9.1"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
