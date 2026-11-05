@@ -67,6 +67,46 @@ npm run generate -- --help
 
 The pipelines are checked with `checkVpl` and written to `data/<target>.vpl` for inspection before anything is converted, so a broken pipeline fails before a long run starts.
 
+## Using the tiles in MapLibre
+
+Which container to use:
+
+- **Elevation** for 3D terrain, hillshading that MapLibre computes in the browser (light direction and colours set in the style), and colour relief.
+- **Hillshade** for a fixed relief overlay on a basemap: a plain `raster` layer, with no DEM decoding in the browser.
+
+Serve a container with [`versatiles serve`](https://github.com/versatiles-org/versatiles-rs), e.g. `versatiles serve hillshade.versatiles`, and point MapLibre at its TileJSON, `/tiles/<name>/tiles.json`. The elevation tiles are hosted at <https://tiles.versatiles.org/tiles/elevation/tiles.json>.
+
+### Hillshade
+
+Shadows are black and highlights white, with their strength in the alpha channel, so the layer works over any basemap. Add it below the first symbol layer, so labels stay on top, and tune its strength with `raster-opacity`:
+
+```js
+map.addSource('hillshade', {
+	type: 'raster',
+	url: 'https://your-server/tiles/hillshade/tiles.json',
+	tileSize: 512,
+});
+const firstSymbol = map.getStyle().layers.find((layer) => layer.type === 'symbol')?.id;
+map.addLayer({ id: 'hillshade', type: 'raster', source: 'hillshade', paint: { 'raster-opacity': 0.5 } }, firstSymbol);
+```
+
+### Elevation
+
+The tiles are Terrarium-encoded, which the TileJSON does not tell MapLibre, so set `encoding` on the source. Use separate sources for MapLibre's `hillshade` layer and for terrain: MapLibre loads terrain tiles one zoom level coarser, which would blur a hillshade sharing the source.
+
+```js
+const dem = {
+	type: 'raster-dem',
+	url: 'https://tiles.versatiles.org/tiles/elevation/tiles.json',
+	encoding: 'terrarium',
+	tileSize: 512,
+};
+map.addSource('elevation-hillshade', dem);
+map.addSource('elevation-terrain', dem);
+map.addLayer({ id: 'hillshade', type: 'hillshade', source: 'elevation-hillshade' }, firstSymbol);
+map.setTerrain({ source: 'elevation-terrain', exaggeration: 1 });
+```
+
 ## Development
 
 ```bash
