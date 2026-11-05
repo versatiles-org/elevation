@@ -24,12 +24,13 @@ cp .env.example .env   # then set OUTPUT_DIR etc.
 
 Settings come from `.env` (see [`.env.example`](.env.example)); variables already set in the environment win. Without `OUTPUT_DIR`, containers are written to `data/`.
 
-| Variable                  | Default                                          | Meaning                                                        |
-| ------------------------- | ------------------------------------------------ | -------------------------------------------------------------- |
-| `OUTPUT_DIR`              | `data/`                                          | Local directory or `sftp://` URL the containers are written to |
-| `VERSATILES_SSH_IDENTITY` | SSH agent, then `~/.ssh` keys                    | Private key for `sftp://` outputs, read by versatiles itself   |
-| `MAPTERHORN_URL`          | `https://download.mapterhorn.com/planet.pmtiles` | The Mapterhorn source                                          |
-| `DEV_PORT`                | `8080`                                           | Port of the `npm run dev` preview server                       |
+| Variable                  | Default                                          | Meaning                                                           |
+| ------------------------- | ------------------------------------------------ | ----------------------------------------------------------------- |
+| `OUTPUT_DIR`              | `data/`                                          | Local directory or `sftp://` URL the containers are written to    |
+| `VERSATILES_SSH_IDENTITY` | SSH agent, then `~/.ssh` keys                    | Private key for `sftp://` outputs, read by versatiles itself      |
+| `VERSATILES_CACHE_DIR`    | in memory                                        | Directory for versatiles' temporary cache; set it for planet runs |
+| `MAPTERHORN_URL`          | `https://download.mapterhorn.com/planet.pmtiles` | The Mapterhorn source                                             |
+| `DEV_PORT`                | `8080`                                           | Port of the `npm run dev` preview server                          |
 
 ## Preview
 

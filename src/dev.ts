@@ -45,14 +45,6 @@ async function main(): Promise<void> {
 		console.log(`  ${name}: http://127.0.0.1:${server.port}/tiles/${name}/{z}/{x}/{y}`);
 	}
 	console.log(`Tiles are computed live from ${config.sourceUrl}. Ctrl+C to stop.`);
-
-	// The native server runs on its own threads and does not keep Node's event
-	// loop alive, so hold it open with a timer until Ctrl+C.
-	const keepAlive = setInterval(() => undefined, 2 ** 31 - 1);
-	process.once('SIGINT', () => {
-		clearInterval(keepAlive);
-		void server.stop();
-	});
 }
 
 const isEntry = process.argv[1]?.endsWith('dev.ts');
