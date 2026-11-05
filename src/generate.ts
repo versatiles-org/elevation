@@ -58,11 +58,19 @@ export function selectTargets(names: string[]): string[] {
 	return [...new Set(names)];
 }
 
-/** One human-readable progress line, e.g. `12.3% (1234/10000 tiles, 56 tiles/s, ETA 14:05:00)`. */
-export function formatProgress(progress: ProgressData): string {
+/** A duration in hours and minutes, e.g. `3h23m` or `45m`, rounded up to the minute. */
+export function formatDuration(milliseconds: number): string {
+	const minutes = Math.max(0, Math.ceil(milliseconds / 60000));
+	const hours = Math.floor(minutes / 60);
+	if (hours === 0) return `${minutes}m`;
+	return `${hours}h${String(minutes % 60).padStart(2, '0')}m`;
+}
+
+/** One human-readable progress line, e.g. `12.3% (1234/10000 tiles, 56 tiles/s, finished in 3h23m)`. */
+export function formatProgress(progress: ProgressData, now: number = Date.now()): string {
 	const parts = [`${progress.position}/${progress.total} tiles`, `${progress.speed.toFixed(0)} tiles/s`];
 	if (progress.etaTimestamp !== undefined) {
-		parts.push(`ETA ${new Date(progress.etaTimestamp).toLocaleString()}`);
+		parts.push(`finished in ${formatDuration(progress.etaTimestamp - now)}`);
 	}
 	const step = progress.message ? `${progress.message}: ` : '';
 	return `${step}${progress.percentage.toFixed(1)}% (${parts.join(', ')})`;
@@ -79,7 +87,7 @@ export function createProgressLogger(
 		const t = now();
 		if (t - last < interval) return;
 		last = t;
-		log(formatProgress(progress));
+		log(formatProgress(progress, t));
 	};
 }
 

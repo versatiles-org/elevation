@@ -1,6 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import type { ProgressData } from '@versatiles/versatiles-rs';
-import { createProgressLogger, formatProgress, parseBbox, parseZoom, selectTargets, TARGETS } from './generate.js';
+import {
+	createProgressLogger,
+	formatDuration,
+	formatProgress,
+	parseBbox,
+	parseZoom,
+	selectTargets,
+	TARGETS,
+} from './generate.js';
 
 describe('selectTargets', () => {
 	it('selects all targets when none are named', () => {
@@ -50,10 +58,31 @@ describe('formatProgress', () => {
 		expect(formatProgress(progress)).toBe('12.3% (1234/10000 tiles, 56 tiles/s)');
 	});
 
-	it('prefixes the current step and appends the ETA when known', () => {
+	it('prefixes the current step and appends the time left when known', () => {
 		const eta = Date.UTC(2026, 10, 4, 12);
-		const line = formatProgress({ ...progress, message: 'converting', etaTimestamp: eta });
-		expect(line).toBe(`converting: 12.3% (1234/10000 tiles, 56 tiles/s, ETA ${new Date(eta).toLocaleString()})`);
+		const now = eta - (3 * 60 + 23) * 60000;
+		const line = formatProgress({ ...progress, message: 'converting', etaTimestamp: eta }, now);
+		expect(line).toBe('converting: 12.3% (1234/10000 tiles, 56 tiles/s, finished in 3h23m)');
+	});
+});
+
+describe('formatDuration', () => {
+	it('shows hours and zero-padded minutes', () => {
+		expect(formatDuration(65 * 60000)).toBe('1h05m');
+		expect(formatDuration((98 * 60 + 30) * 60000)).toBe('98h30m');
+	});
+
+	it('leaves out the hours under an hour', () => {
+		expect(formatDuration(45 * 60000)).toBe('45m');
+	});
+
+	it('rounds up to the minute', () => {
+		expect(formatDuration(1_000)).toBe('1m');
+		expect(formatDuration(59 * 60000 + 1_000)).toBe('1h00m');
+	});
+
+	it('shows an ETA in the past as 0m', () => {
+		expect(formatDuration(-90_000)).toBe('0m');
 	});
 });
 
