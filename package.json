@@ -37,6 +37,6 @@
     "fsevents": true
   },
   "dependencies": {
-    "@versatiles/versatiles-rs": "^5.6.0"
+    "@versatiles/versatiles-rs": "^5.7.0"
   }
 }
