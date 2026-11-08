@@ -10,6 +10,16 @@ import {
 	TARGETS,
 } from './generate.js';
 
+describe('TARGETS', () => {
+	it('names each container after its tileset, ending with the format', () => {
+		// download.versatiles.org and tiles.versatiles.org know the tilesets by these names.
+		expect(Object.values(TARGETS).map((target) => target.filename)).toEqual([
+			'elevation-raster.versatiles',
+			'hillshade-raster.versatiles',
+		]);
+	});
+});
+
 describe('selectTargets', () => {
 	it('selects all targets when none are named', () => {
 		expect(selectTargets([])).toEqual(['elevation', 'hillshade']);

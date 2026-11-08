@@ -22,8 +22,8 @@ export interface Target {
 }
 
 export const TARGETS: Record<string, Target> = {
-	elevation: { filename: 'elevation.versatiles', pipeline: elevationPipeline },
-	hillshade: { filename: 'hillshade.versatiles', pipeline: hillshadePipeline },
+	elevation: { filename: 'elevation-raster.versatiles', pipeline: elevationPipeline },
+	hillshade: { filename: 'hillshade-raster.versatiles', pipeline: hillshadePipeline },
 };
 
 /** Parse `--bbox west,south,east,north` in WGS84 degrees. */

@@ -2,10 +2,10 @@
 
 Builds VersaTiles containers from [Mapterhorn](https://mapterhorn.com)'s global DEM, the remote [`planet.pmtiles`](https://download.mapterhorn.com/planet.pmtiles) (z0–12, already [Terrarium-encoded](https://github.com/tilezen/joerd/blob/master/docs/formats.md#terrarium) WebP), and writes them as [`.versatiles`](https://github.com/versatiles-org/versatiles-spec) containers to `OUTPUT_DIR`:
 
-| Target      | Container              | Contents                                                                                                             |
-| ----------- | ---------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `elevation` | `elevation.versatiles` | The DEM tiles unchanged, with our metadata (`dem/terrarium`)                                                         |
-| `hillshade` | `hillshade.versatiles` | Transparent RGBA WebP hillshading (`dem_hillshade`), shaded like MapLibre's `hillshade` layer, to lay over a basemap |
+| Target      | Container                     | Contents                                                                                                             |
+| ----------- | ----------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `elevation` | `elevation-raster.versatiles` | The DEM tiles unchanged, with our metadata (`dem/terrarium`)                                                         |
+| `hillshade` | `hillshade-raster.versatiles` | Transparent RGBA WebP hillshading (`dem_hillshade`), shaded like MapLibre's `hillshade` layer, to lay over a basemap |
 
 The pipelines are in [`src/pipelines.ts`](src/pipelines.ts). The conversion runs in-process through the [`@versatiles/versatiles-rs`](https://www.npmjs.com/package/@versatiles/versatiles-rs) Node module, which builds the output beside the destination and renames it into place only once it is complete, so a crash never leaves a half-written container behind.
 
@@ -56,7 +56,7 @@ npm run generate:hillshade
 npm run generate -- --dry-run
 
 # Trial run: a small area and zoom range, e.g. Switzerland up to z8
-npm run generate -- hillshade --bbox 5.9,45.8,10.5,47.8 --max-zoom 8 --output data/trial/hillshade.versatiles
+npm run generate -- hillshade --bbox 5.9,45.8,10.5,47.8 --max-zoom 8 --output data/trial/hillshade-raster.versatiles
 
 # Write one container to a specific file instead of $OUTPUT_DIR
 npm run generate -- elevation --output dem.versatiles
@@ -74,7 +74,7 @@ Which container to use:
 - **Elevation** for 3D terrain, hillshading that MapLibre computes in the browser (light direction and colours set in the style), and colour relief.
 - **Hillshade** for a fixed relief overlay on a basemap: a plain `raster` layer, with no DEM decoding in the browser.
 
-Serve a container with [`versatiles serve`](https://github.com/versatiles-org/versatiles-rs), e.g. `versatiles serve hillshade.versatiles`, and point MapLibre at its TileJSON, `/tiles/<name>/tiles.json`. The elevation tiles are hosted at <https://tiles.versatiles.org/tiles/elevation/tiles.json>.
+Serve a container with [`versatiles serve`](https://github.com/versatiles-org/versatiles-rs), e.g. `versatiles serve hillshade-raster.versatiles`, and point MapLibre at its TileJSON, `/tiles/<name>/tiles.json`. The elevation tiles are hosted at <https://tiles.versatiles.org/tiles/elevation-raster/tiles.json>; the old name `elevation` still works as an alias.
 
 ### Hillshade
 
@@ -83,7 +83,7 @@ Shadows are black and highlights white, with their strength in the alpha channel
 ```js
 map.addSource('hillshade', {
 	type: 'raster',
-	url: 'https://your-server/tiles/hillshade/tiles.json',
+	url: 'https://your-server/tiles/hillshade-raster/tiles.json',
 	tileSize: 512,
 });
 const firstSymbol = map.getStyle().layers.find((layer) => layer.type === 'symbol')?.id;
@@ -97,7 +97,7 @@ The tiles are Terrarium-encoded, which the TileJSON does not tell MapLibre, so s
 ```js
 const dem = {
 	type: 'raster-dem',
-	url: 'https://tiles.versatiles.org/tiles/elevation/tiles.json',
+	url: 'https://tiles.versatiles.org/tiles/elevation-raster/tiles.json',
 	encoding: 'terrarium',
 	tileSize: 512,
 };
