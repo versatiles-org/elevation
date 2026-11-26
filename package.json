@@ -21,7 +21,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@types/node": "^26.6.10",
+    "@types/node": "^26.6.11",
     "@versatiles/release-tool": "^2.23.0",
     "@vitest/coverage-v8": "^5.1.2",
     "eslint": "^10.15.0",
@@ -37,6 +37,6 @@
     "fsevents": true
   },
   "dependencies": {
-    "@versatiles/versatiles-rs": "^5.15.0"
+    "@versatiles/versatiles-rs": "^5.16.0"
   }
 }
